@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use anyhow::{bail, Context, Result};
+use socket2::{SockRef, TcpKeepalive};
 use tokio::{io::AsyncWriteExt, net::TcpStream, time::timeout};
 use tracing::{error, info, info_span, warn, Instrument};
 use uuid::Uuid;
@@ -10,6 +11,7 @@ use uuid::Uuid;
 use crate::auth::Authenticator;
 use crate::shared::{
     proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT, NETWORK_TIMEOUT,
+    TCP_KEEPALIVE_INTERVAL, TCP_KEEPALIVE_TIME,
 };
 
 /// State structure for the client.
@@ -122,7 +124,17 @@ impl Client {
 
 async fn connect_with_timeout(to: &str, port: u16) -> Result<TcpStream> {
     match timeout(NETWORK_TIMEOUT, TcpStream::connect((to, port))).await {
-        Ok(res) => res,
+        Ok(res) => {
+            let res = res?;
+            let sock_ref = SockRef::from(&res);
+
+            let mut ka = TcpKeepalive::new();
+            ka = ka.with_time(TCP_KEEPALIVE_TIME);
+            ka = ka.with_interval(TCP_KEEPALIVE_INTERVAL);
+
+            sock_ref.set_tcp_keepalive(&ka)?;
+            anyhow::Ok(res)
+        }
         Err(err) => Err(err.into()),
     }
     .with_context(|| format!("could not connect to {to}:{port}"))

@@ -12,13 +12,18 @@ use tracing::trace;
 use uuid::Uuid;
 
 /// TCP port used for control connections with the server.
-pub const CONTROL_PORT: u16 = 7835;
+pub const CONTROL_PORT: u16 = 8492;
 
 /// Maximum byte length for a JSON frame in the stream.
 pub const MAX_FRAME_LENGTH: usize = 256;
 
 /// Timeout for network connections and initial protocol messages.
 pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(3);
+
+/// Set the amount of time after which TCP keepalive probes will be sent on idle connections.
+pub const TCP_KEEPALIVE_TIME: Duration = Duration::from_secs(30);
+/// Sets the time interval between TCP keepalive probes.
+pub const TCP_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(10);
 
 /// A message from the client on the control connection.
 #[derive(Debug, Serialize, Deserialize)]
