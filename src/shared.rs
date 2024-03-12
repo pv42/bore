@@ -2,6 +2,8 @@
 
 use std::time::Duration;
 
+use socket2::TcpKeepalive;
+
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -21,9 +23,11 @@ pub const MAX_FRAME_LENGTH: usize = 256;
 pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Set the amount of time after which TCP keepalive probes will be sent on idle connections.
-pub const TCP_KEEPALIVE_TIME: Duration = Duration::from_secs(30);
+pub const TCP_KEEPALIVE_TIME: Duration = Duration::from_secs(5);
 /// Sets the time interval between TCP keepalive probes.
-pub const TCP_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(10);
+pub const TCP_KEEPALIVE_INTERVAL: Duration = Duration::from_millis(500);
+/// Set the maximum number of TCP keepalive probes that will be sent before dropping a connection.
+pub const TCP_KEEPALIVE_CNT: u32 = 3;
 
 /// A message from the client on the control connection.
 #[derive(Debug, Serialize, Deserialize)]
@@ -116,4 +120,45 @@ where
         res = io::copy(&mut s2_read, &mut s1_write) => res,
     }?;
     Ok(())
+}
+
+/// Get the keepalive support for plattforms that support retry count
+#[cfg(all(any(
+    target_os = "android",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "fuchsia",
+    target_os = "illumos",
+    target_os = "ios",
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "netbsd",
+    target_os = "tvos",
+    target_os = "watchos",
+)))]
+pub const fn get_tcp_keepalive_params() -> TcpKeepalive {
+    TcpKeepalive::new()
+        .with_time(TCP_KEEPALIVE_TIME)
+        .with_interval(TCP_KEEPALIVE_INTERVAL)
+        .with_retries(TCP_KEEPALIVE_CNT)
+}
+
+/// Get the keepalive parameters for plattforms that DO NOT support retry count
+#[cfg(all(not(any(
+    target_os = "android",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "fuchsia",
+    target_os = "illumos",
+    target_os = "ios",
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "netbsd",
+    target_os = "tvos",
+    target_os = "watchos",
+))))]
+pub const fn get_tcp_keepalive_params() -> TcpKeepalive {
+    TcpKeepalive::new()
+        .with_time(TCP_KEEPALIVE_TIME)
+        .with_interval(TCP_KEEPALIVE_INTERVAL)
 }

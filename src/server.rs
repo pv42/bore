@@ -4,7 +4,7 @@ use std::{io, net::SocketAddr, ops::RangeInclusive, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use dashmap::DashMap;
-use socket2::{SockRef, TcpKeepalive};
+use socket2::SockRef;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::time::{sleep, timeout};
@@ -13,8 +13,7 @@ use uuid::Uuid;
 
 use crate::auth::Authenticator;
 use crate::shared::{
-    proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT, TCP_KEEPALIVE_INTERVAL,
-    TCP_KEEPALIVE_TIME,
+    get_tcp_keepalive_params, proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT,
 };
 
 /// State structure for the server.
@@ -46,12 +45,10 @@ impl Server {
         let addr = SocketAddr::from(([0, 0, 0, 0], CONTROL_PORT));
         let listener = TcpListener::bind(&addr).await?;
 
-        let ka = TcpKeepalive::new()
-            .with_time(TCP_KEEPALIVE_TIME)
-            .with_interval(TCP_KEEPALIVE_INTERVAL);
+        let ka = get_tcp_keepalive_params();
         SockRef::from(&listener).set_tcp_keepalive(&ka)?;
 
-        info!(?addr, "server listening");
+        info!(?addr, "server listening, using keepalive");
 
         loop {
             let (stream, addr) = listener.accept().await?;
