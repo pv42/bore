@@ -10,7 +10,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::io::{self, AsyncRead, AsyncWrite};
 use tokio::time::timeout;
 use tokio_util::codec::{AnyDelimiterCodec, Framed, FramedParts};
-use tracing::trace;
+use tracing::{info, trace};
 use uuid::Uuid;
 
 /// TCP port used for control connections with the server.
@@ -25,7 +25,7 @@ pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(3);
 /// Set the amount of time after which TCP keepalive probes will be sent on idle connections.
 pub const TCP_KEEPALIVE_TIME: Duration = Duration::from_secs(5);
 /// Sets the time interval between TCP keepalive probes.
-pub const TCP_KEEPALIVE_INTERVAL: Duration = Duration::from_millis(500);
+pub const TCP_KEEPALIVE_INTERVAL: Duration = Duration::from_secs(1);
 /// Set the maximum number of TCP keepalive probes that will be sent before dropping a connection.
 pub const TCP_KEEPALIVE_CNT: u32 = 3;
 
@@ -136,11 +136,16 @@ where
     target_os = "tvos",
     target_os = "watchos",
 )))]
-pub const fn get_tcp_keepalive_params() -> TcpKeepalive {
+pub fn get_tcp_keepalive_params() -> TcpKeepalive {
+    let keepalive_time = TCP_KEEPALIVE_TIME.as_millis();
+    let keepalive_interval = TCP_KEEPALIVE_INTERVAL.as_millis();
+    let keepalive_cnt = TCP_KEEPALIVE_CNT;
+    info!(keepalive_time, keepalive_interval, keepalive_cnt, "using TCP_KEEPALIVE");
     TcpKeepalive::new()
         .with_time(TCP_KEEPALIVE_TIME)
         .with_interval(TCP_KEEPALIVE_INTERVAL)
         .with_retries(TCP_KEEPALIVE_CNT)
+    
 }
 
 /// Get the keepalive parameters for plattforms that DO NOT support retry count
@@ -157,7 +162,10 @@ pub const fn get_tcp_keepalive_params() -> TcpKeepalive {
     target_os = "tvos",
     target_os = "watchos",
 ))))]
-pub const fn get_tcp_keepalive_params() -> TcpKeepalive {
+pub fn get_tcp_keepalive_params() -> TcpKeepalive {
+    let keepalive_time = TCP_KEEPALIVE_TIME.as_millis();
+    let keepalive_interval = TCP_KEEPALIVE_INTERVAL.as_millis();
+    info!(keepalive_time, keepalive_interval, "using TCP_KEEPALIVE");
     TcpKeepalive::new()
         .with_time(TCP_KEEPALIVE_TIME)
         .with_interval(TCP_KEEPALIVE_INTERVAL)

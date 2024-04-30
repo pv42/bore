@@ -44,10 +44,6 @@ impl Server {
         let this = Arc::new(self);
         let addr = SocketAddr::from(([0, 0, 0, 0], CONTROL_PORT));
         let listener = TcpListener::bind(&addr).await?;
-
-        let ka = get_tcp_keepalive_params();
-        SockRef::from(&listener).set_tcp_keepalive(&ka)?;
-
         info!(?addr, "server listening, using keepalive");
 
         loop {
