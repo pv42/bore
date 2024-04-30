@@ -4,7 +4,6 @@ use std::{io, net::SocketAddr, ops::RangeInclusive, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use dashmap::DashMap;
-use socket2::SockRef;
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::time::{sleep, timeout};
@@ -13,7 +12,7 @@ use uuid::Uuid;
 
 use crate::auth::Authenticator;
 use crate::shared::{
-    get_tcp_keepalive_params, proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT,
+    proxy, ClientMessage, Delimited, ServerMessage, CONTROL_PORT,
 };
 
 /// State structure for the server.
